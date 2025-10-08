@@ -2,8 +2,11 @@ package com.adisaputera.savingapp.config;
 
 import com.adisaputera.savingapp.model.Account;
 import com.adisaputera.savingapp.model.RoleEnum;
+import com.adisaputera.savingapp.model.Transaction;
+import com.adisaputera.savingapp.model.TypeTransactionEnum;
 import com.adisaputera.savingapp.model.User;
 import com.adisaputera.savingapp.repository.AccountRepository;
+import com.adisaputera.savingapp.repository.TransactionRepository;
 import com.adisaputera.savingapp.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,11 +24,12 @@ public class DataLoader {
     public CommandLineRunner createInitialData(
             UserRepository userRepository,
             AccountRepository accountRepository,
+            TransactionRepository transactionRepository,
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
             // ==== Staff ====
-            userRepository.findByEmail("adi@example.com")
+            User staff = userRepository.findByEmail("adi@example.com")
                 .orElseGet(() -> {
                     User newStaff = User.builder()
                             .fullName("Adi Saputera")
@@ -36,8 +40,11 @@ public class DataLoader {
                             .phone("08123456789")
                             .createdAt(LocalDateTime.now())
                             .build();
-                    return userRepository.save(newStaff);
+                    User savedStaff = userRepository.save(newStaff);
+                    System.out.println(">>> Staff UUID: " + savedStaff.getId());
+                    return savedStaff;
                 });
+            System.out.println(">>> Staff " + staff.getFullName() + " - UUID: " + staff.getId());
 
             // ==== Nasabah 1 ====
             User nasabah1 = userRepository.findByEmail("shandina@example.com")
@@ -51,8 +58,11 @@ public class DataLoader {
                                 .phone("08123456789")
                                 .createdAt(LocalDateTime.now())
                                 .build();
-                        return userRepository.save(newNasabah);
+                        User savedNasabah = userRepository.save(newNasabah);
+                        System.out.println(">>> Nasabah 1 UUID: " + savedNasabah.getId());
+                        return savedNasabah;
                     });
+            System.out.println(">>> Nasabah 1 " + nasabah1.getFullName() + " - UUID: " + nasabah1.getId());
 
             // ==== Nasabah 2 ====
             User nasabah2 = userRepository.findByEmail("adrian@example.com")
@@ -66,16 +76,19 @@ public class DataLoader {
                                 .phone("08987654321")
                                 .createdAt(LocalDateTime.now())
                                 .build();
-                        return userRepository.save(newNasabah);
+                        User savedNasabah = userRepository.save(newNasabah);
+                        System.out.println(">>> Nasabah 2 UUID: " + savedNasabah.getId());
+                        return savedNasabah;
                     });
+            System.out.println(">>> Nasabah 2 " + nasabah2.getFullName() + " - UUID: " + nasabah2.getId());
 
             // ==== Buat rekening ====
-            createAccountsForNasabah(nasabah1, accountRepository);
-            createAccountsForNasabah(nasabah2, accountRepository);
+            createAccountsForNasabah(nasabah1, accountRepository, transactionRepository);
+            createAccountsForNasabah(nasabah2, accountRepository, transactionRepository);
         };
     }
 
-    private void createAccountsForNasabah(User nasabah, AccountRepository accountRepository) {
+    private void createAccountsForNasabah(User nasabah, AccountRepository accountRepository, TransactionRepository transactionRepository) {
         if (nasabah.getRole() == RoleEnum.nasabah) {
             List<Account> existingAccounts = accountRepository.findAllByUserId(nasabah);
 
@@ -100,20 +113,12 @@ public class DataLoader {
                         .createdAt(LocalDateTime.now())
                         .build();
 
-                // Simpan pertama kali (accountCode masih null)
+                // Simpan accounts
                 activeAccount = accountRepository.saveAndFlush(activeAccount);
                 inactiveAccount = accountRepository.saveAndFlush(inactiveAccount);
 
-                // Simpan lagi untuk update accountCode (karena diisi @PostPersist)
-                if (activeAccount.getAccountCode() == null) {
-                    activeAccount.setAccountCode(String.format("ACC-%06d", activeAccount.getId()));
-                    accountRepository.saveAndFlush(activeAccount);
-                }
-
-                if (inactiveAccount.getAccountCode() == null) {
-                    inactiveAccount.setAccountCode(String.format("ACC-%06d", inactiveAccount.getId()));
-                    accountRepository.saveAndFlush(inactiveAccount);
-                }
+                // Buat sample transaksi untuk rekening aktif
+                createSampleTransactions(activeAccount, transactionRepository);
 
                 System.out.println(">>> 2 rekening untuk " + nasabah.getFullName() + " berhasil dibuat:");
                 System.out.println("    - " + activeAccount.getAccountCode() + " (Aktif, Saldo: " + activeAccount.getBalance() + ")");
@@ -122,5 +127,52 @@ public class DataLoader {
                 System.out.println(">>> " + nasabah.getFullName() + " sudah punya rekening, skip.");
             }
         }
+    }
+
+    private void createSampleTransactions(Account account, TransactionRepository transactionRepository) {
+        Long currentBalance = 0L;
+        
+        // Transaksi deposit pertama
+        currentBalance += 500_000L;
+        Transaction deposit1 = Transaction.builder()
+                .accountCode(account)
+                .type(TypeTransactionEnum.deposit)
+                .amount(500_000L)
+                .balance(currentBalance) // 500,000
+                .note("Setoran awal")
+                .occurredAt(LocalDateTime.now().minusDays(10))
+                .createdAt(LocalDateTime.now().minusDays(10))
+                .build();
+
+        // Transaksi deposit kedua
+        currentBalance += 500_000L;
+        Transaction deposit2 = Transaction.builder()
+                .accountCode(account)
+                .type(TypeTransactionEnum.deposit)
+                .amount(500_000L)
+                .balance(currentBalance) // 1,000,000
+                .note("Setoran tambahan")
+                .occurredAt(LocalDateTime.now().minusDays(5))
+                .createdAt(LocalDateTime.now().minusDays(5))
+                .build();
+
+        // Transaksi withdraw
+        currentBalance -= 200_000L;
+        Transaction withdraw1 = Transaction.builder()
+                .accountCode(account)
+                .type(TypeTransactionEnum.withdraw)
+                .amount(200_000L)
+                .balance(currentBalance) // 800,000
+                .note("Tarik tunai ATM")
+                .occurredAt(LocalDateTime.now().minusDays(2))
+                .createdAt(LocalDateTime.now().minusDays(2))
+                .build();
+
+        // Simpan transaksi
+        transactionRepository.saveAndFlush(deposit1);
+        transactionRepository.saveAndFlush(deposit2);
+        transactionRepository.saveAndFlush(withdraw1);
+
+        System.out.println("    >>> 3 transaksi sample untuk " + account.getAccountCode() + " berhasil dibuat dengan balance snapshot");
     }
 }

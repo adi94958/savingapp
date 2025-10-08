@@ -29,7 +29,7 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "account_code", unique = true, nullable = false, length = 20)
+    @Column(name = "account_code", unique = true, nullable = true, length = 20)
     private String accountCode;
 
     @ManyToOne

@@ -25,14 +25,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/staff/account")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class AccountController {
     private final AccountService accountService;
 
     @PostMapping(
-        path = "/create", 
+        path = "/staff/account/create", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<AccountResponseDTO>> createAccountNasabah(@Valid @RequestBody AccountCreateRequestDTO request) {
@@ -41,7 +41,7 @@ public class AccountController {
     }
 
     @GetMapping(
-        path = "/list", 
+        path = "/staff/account/list", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<List<AccountResponseDTO>>> getAccountList(
@@ -55,7 +55,7 @@ public class AccountController {
         }
 
     @PatchMapping(
-        path = "/update/{accountCode}/status", 
+        path = "/staff/account/update/{accountCode}/status", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> updateAccountStatus(
@@ -67,13 +67,24 @@ public class AccountController {
     }
 
     @DeleteMapping(
-        path = "/delete/{accountCode}/delete", 
+        path = "/staff/account/delete/{accountCode}/delete", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> deleteAccount(
         @PathVariable String accountCode
     ) {
         ApiResponse<String> response = accountService.deleteAccount(accountCode);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping(
+        path = "/nasabah/account/{userId}", 
+        produces = "application/json"
+    )
+    public ResponseEntity<ApiResponse<List<AccountResponseDTO>>> getAccountByUserId(
+        @PathVariable String userId
+    ) {
+        ApiResponse<List<AccountResponseDTO>> response = accountService.getAccountByUserId(userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

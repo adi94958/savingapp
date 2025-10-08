@@ -34,7 +34,7 @@ public class AccountService {
     public ApiResponse<AccountResponseDTO> createAccount(AccountCreateRequestDTO request) {
         Optional<User> userOpt = userRepository.findById(UUID.fromString(request.getUserId()));
         if (userOpt.isEmpty()) {
-            throw new ResourceNotFoundException("User", "id", request.getUserId());
+            throw new ResourceNotFoundException("Account not found");
         }
 
         User user = userOpt.get();
@@ -76,15 +76,13 @@ public class AccountService {
             accountPage = accountRepository.findAll(pageable);
         }
 
+        if (accountPage.isEmpty()) {
+            throw new ResourceNotFoundException("Account not found");
+        }
+
         // Konversi entitas User ke DTO
         List<AccountResponseDTO> accountDtos = accountPage.getContent().stream()
             .map(account -> {
-                // Optional<User> user = userRepository.findById(account.getUserId().getId()); 
-                // UserResponseDTO userDto = UserResponseDTO.builder()
-                //     .id(user.get().getId().toString())
-                //     .fullName(user.get().getFullName())
-                //     .build();
-
                 User user = account.getUserId();
 
                 return AccountResponseDTO.builder()
@@ -118,7 +116,7 @@ public class AccountService {
             .findFirst();
 
         if (accountOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Account", "accountCode", accountCode);
+            throw new ResourceNotFoundException("Account not found");
         }
 
         Account account = accountOpt.get();
@@ -131,16 +129,49 @@ public class AccountService {
 
     public ApiResponse<String> deleteAccount(String accountCode) {
         Optional<Account> accountOpt = accountRepository.findAll().stream()
-            .filter(acc -> acc.getAccountCode().equals(accountCode))
+            .filter(account -> account.getAccountCode().equals(accountCode))
             .findFirst();
 
         if (accountOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Account", "accountCode", accountCode);
+            throw new ResourceNotFoundException("Account not found");
         }
 
         Account account = accountOpt.get();
         accountRepository.delete(account);
 
         return ApiResponse.success("Account deleted successfully", null);
+    }
+
+    public ApiResponse<List<AccountResponseDTO>> getAccountByUserId(String userId) {
+        // Validasi user exists
+        Optional<User> userOpt = userRepository.findById(UUID.fromString(userId));
+        if (userOpt.isEmpty()) {
+            throw new ResourceNotFoundException("User", "id", userId);
+        }
+
+        User user = userOpt.get();
+        List<Account> accounts = accountRepository.findAllByUserId(user);
+
+        if (accounts.isEmpty()) {
+            throw new ResourceNotFoundException("Account", "userId", userId);
+        }
+
+        // Konversi ke DTO
+        List<AccountResponseDTO> accountDtos = accounts.stream()
+            .map(account -> AccountResponseDTO.builder()
+                .accountCode(account.getAccountCode())
+                .isActive(account.getIsActive())
+                .totalDeposit(account.getTotalDeposit())
+                .totalWithdraw(account.getTotalWithdraw())
+                .balance(account.getBalance())
+                .user(UserResponseDTO.builder()
+                    .id(user.getId().toString())
+                    .fullName(user.getFullName())
+                    .build())
+                .createdAt(account.getCreatedAt().toString())
+                .build())
+            .collect(Collectors.toList());
+
+        return ApiResponse.success("Accounts retrieved successfully", accountDtos);
     }
 }

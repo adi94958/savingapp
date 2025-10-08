@@ -29,14 +29,14 @@ import java.util.UUID;
 
 
 @RestController
-@RequestMapping("/api/staff/user")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
     private final UserService userService;
 
     @PostMapping(
-        path = "/create", 
+        path = "/staff/user/create", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<UserResponseDTO>> createUser(@Valid @RequestBody UserCreateRequestDTO request) {
@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @GetMapping(
-        path = "/list", 
+        path = "/staff/user/list", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getUserList(
@@ -59,7 +59,7 @@ public class UserController {
     }
 
     @GetMapping(
-        path = "/{userId}/detail", 
+        path = "/nasabah/user/{userId}/detail", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<UserResponseDTO>> getUserById(@PathVariable UUID userId) {
@@ -68,7 +68,7 @@ public class UserController {
     }
     
     @PutMapping(
-        path = "/{userId}/update", 
+        path = "/nasabah/user/{userId}/update", 
         consumes = "application/json", 
         produces = "application/json"
     )
@@ -78,7 +78,7 @@ public class UserController {
     }
 
     @PatchMapping(
-        path = "/{userId}/password",
+        path = "/nasabah/user/{userId}/password",
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> changePassword(

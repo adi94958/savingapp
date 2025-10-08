@@ -22,13 +22,16 @@ public class TransactionResponseDTO {
     private UUID transactionId;
 
     @JsonProperty("account_code")
-    private AccountResponseDTO account;
+    private String accountCode;
 
     @JsonProperty("type")
     private TypeTransactionEnum type;
 
     @JsonProperty("amount")
     private Long amount;
+
+    @JsonProperty("balance")
+    private Long balance;
 
     @JsonProperty("note")
     private String note;

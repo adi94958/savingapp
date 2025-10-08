@@ -78,6 +78,10 @@ public class UserService {
             userPage = userRepository.findAll(pageable);
         }
 
+        if (userPage.isEmpty()) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
         List<UserResponseDTO> userDtos = userPage.getContent().stream()
             .map(user -> UserResponseDTO.builder()
                     .id(user.getId().toString())
@@ -102,9 +106,11 @@ public class UserService {
 
     public ApiResponse<UserResponseDTO> getUserById(UUID userId) {
         Optional<User> userOptional = userRepository.findById(userId);
+
         if (userOptional.isEmpty()) {
-            throw new DuplicateResourceException("User", "id", userOptional.get().getId());
+            throw new ResourceNotFoundException("User not found");
         }
+
         User user = userOptional.get();
         UserResponseDTO userDto = UserResponseDTO.builder()
                 .id(user.getId().toString())
@@ -122,8 +128,9 @@ public class UserService {
     public ApiResponse<UserResponseDTO> updateUser(UUID userId, UserUpdateRequestDTO request) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
-            throw new DuplicateResourceException("User", "id", userOptional.get().getId());
+            throw new ResourceNotFoundException("User not found");
         }
+
         User user = userOptional.get();
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
@@ -131,6 +138,7 @@ public class UserService {
         user.setAddress(request.getAddress());
         user.setPhone(request.getPhone());
         userRepository.save(user);
+
         UserResponseDTO userDto = UserResponseDTO.builder()
                 .id(user.getId().toString())
                 .fullName(user.getFullName())
@@ -146,7 +154,7 @@ public class UserService {
     public ApiResponse<String> changePassword(UUID userId, ChangePasswordRequestDTO request) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
-           throw new DuplicateResourceException("User", "id", userOptional.get().getId());
+            throw new ResourceNotFoundException("User not found");
         }
         User user = userOptional.get();
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {

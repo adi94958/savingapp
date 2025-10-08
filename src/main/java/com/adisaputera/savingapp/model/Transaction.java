@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -36,10 +38,14 @@ public class Transaction {
     private Account accountCode;
     
     @Column(name = "type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private TypeTransactionEnum type;
 
     @Column(name = "amount", nullable = false)
     private Long amount;
+
+    @Column(name = "balance", nullable = false)
+    private Long balance;
 
     @Column(name = "note", nullable = true)
     @Size(max = 200)

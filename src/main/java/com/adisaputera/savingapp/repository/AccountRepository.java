@@ -15,5 +15,5 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Page<Account> findByUserIdFullNameContainingIgnoreCase(String keyword, Pageable pageable);
     List<Account> findAllByUserId(User user);
     Optional<Account> findByAccountCode(String accountCode);
-    Page<Account> findAllByAccountCode(Account accountCode);
+    Page<Account> findAllByAccountCode(Account accountCode, Pageable pageable);
 }
