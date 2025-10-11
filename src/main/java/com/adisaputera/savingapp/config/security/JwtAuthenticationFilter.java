@@ -12,10 +12,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -24,76 +24,70 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
-
-        final String authHeader = request.getHeader("Authorization");
-
-        // Skip if no Authorization header or doesn't start with Bearer
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        try {
-            final String jwt = authHeader.substring(7); // Remove "Bearer " prefix
-
-            // Validate if it's a valid access token
-            if (!jwtService.isValidAccessToken(jwt)) {
-                log.warn("Invalid or expired access token");
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            // Extract user information from token
-            JwtService.JwtUserInfo userInfo = jwtService.extractUserInfo(jwt);
-
-            // Check if user is already authenticated
-            if (userInfo.getUserId() != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                // Create authorities based on user role
-                List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                        new SimpleGrantedAuthority("ROLE_" + userInfo.getRole())
-                );
-
-                // Create authentication token
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userInfo.getUserId(),
-                        null,
-                        authorities
-                );
-
-                // Add request details
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // Set authentication in security context
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                // Add user info to request attributes for easy access in controllers
-                request.setAttribute("userId", userInfo.getUserId());
-                request.setAttribute("fullName", userInfo.getFullName());
-                request.setAttribute("userRole", userInfo.getRole());
-
-                log.debug("User authenticated successfully: {} with role: {}",
-                        userInfo.getUserId(), userInfo.getRole());
-            }
-
-        } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
-            SecurityContextHolder.clearContext();
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        
+        String token = extractTokenFromRequest(request);
+        
+        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            authenticateUser(token, request);
         }
 
         filterChain.doFilter(request, response);
     }
 
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith(BEARER_PREFIX)) {
+            return authHeader.substring(BEARER_PREFIX.length());
+        }
+        
+        return null;
+    }
+
+    private void authenticateUser(String token, HttpServletRequest request) {
+        try {
+            if (!jwtService.isValidAccessToken(token)) {
+                log.warn("Invalid or expired access token");
+                return;
+            }
+
+            JwtService.JwtUserInfo userInfo = jwtService.extractUserInfo(token);
+            
+            if (userInfo.getUserId() == null) {
+                log.warn("User ID not found in token");
+                return;
+            }
+
+            setAuthenticationContext(userInfo, request);
+            
+        } catch (Exception e) {
+            log.error("Authentication failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private void setAuthenticationContext(JwtService.JwtUserInfo userInfo, HttpServletRequest request) {
+        List<SimpleGrantedAuthority> authorities = List.of(
+            new SimpleGrantedAuthority("ROLE_" + userInfo.getRole())
+        );
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+            userInfo.getUserId(), null, authorities
+        );
+        
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        log.debug("User authenticated: {} with role: {}", userInfo.getUserId(), userInfo.getRole());
+    }
+
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Skip JWT filter for public endpoints
-        return path.startsWith("/api/auth/") ;
+        return path.startsWith("/api/auth/");
     }
 }

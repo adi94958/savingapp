@@ -54,10 +54,10 @@ public class SecurityUtil {
     }
 
     /**
-     * Check if current user is admin/staff
+     * Check if current user is admin
      */
-    public static boolean isStaff() {
-        return hasRole("staff");
+    public static boolean isAdmin() {
+        return hasRole("admin");
     }
 
     /**

@@ -1,6 +1,6 @@
 # Savings Management API Contract
 
-This document describes the API specification for the **Savings Management System**, with two roles: **STAFF** and **USER**.
+This document describes the API specification for the **Savings Management System**, with two roles: **ADMIN** and **NASABAH**.
 
 ---
 
@@ -75,7 +75,7 @@ This document describes the API specification for the **Savings Management Syste
 - `id: UUID`
 - `fullName: string`
 - `email: string`
-- `role: "USER" | "STAFF"`
+- `role: "nasabah" | "admin"`
 - `address: text`
 - `phone: string`
 - `createdAt: ISO-8601`
@@ -84,7 +84,7 @@ This document describes the API specification for the **Savings Management Syste
 
 - `accountCode: string` (unique, human-facing; e.g., `ACC-0001`)
 - `userId: UUID`
-- `accountName: string` (STAFF views)
+- `accountName: string` (ADMIN views)
 - `name: string`
 - `isActive: boolean`
 - `totalDeposit: number` (computed)
@@ -95,7 +95,7 @@ This document describes the API specification for the **Savings Management Syste
 
 - `id: UUID`
 - `accountCode: string`
-- `type: "DEPOSIT" | "WITHDRAW"`
+- `type: "deposit" | "withdraw"`
 - `amount: number (>0)`
 - `occurredAt: date`
 - `note?: string`
@@ -127,7 +127,7 @@ This document describes the API specification for the **Savings Management Syste
       "id": "uuid",
       "fullName": "Muhammad Adi",
       "email": "adi@mail.com",
-      "role": "STAFF"
+      "role": "admin"
     }
   }
 }
@@ -175,16 +175,16 @@ This document describes the API specification for the **Savings Management Syste
     "id": "uuid",
     "fullName": "Muhammad Adi",
     "email": "adi@mail.com",
-    "role": "USER"
+    "role": "nasabah"
   }
 }
 ```
 
 ---
 
-## 2. STAFF — Dashboard
+## 2. ADMIN — Dashboard
 
-### GET `/staff/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`
+### GET `/admin/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`
 
 **200**
 
@@ -213,7 +213,7 @@ This document describes the API specification for the **Savings Management Syste
 
 ---
 
-## 3. STAFF — Users
+## 3. ADMIN — Users
 
 ### GET `/users?page=1&perPage=10&sort=fullName,asc&q=adi`
 
@@ -227,7 +227,7 @@ This document describes the API specification for the **Savings Management Syste
       "id": "uuid",
       "fullName": "Muhammad Adi",
       "email": "adi@mail.com",
-      "role": "USER",
+      "role": "nasabah",
       "createdAt": "2025-09-10T01:02:03Z"
     }
   ],
@@ -335,7 +335,7 @@ This document describes the API specification for the **Savings Management Syste
 
 ---
 
-## 4. STAFF — Accounts
+## 4. ADMIN — Accounts
 
 ### GET `/accounts?page=1&perPage=10&sort=createdAt,desc&q=ACC-0001&active=true`
 
@@ -487,7 +487,7 @@ This document describes the API specification for the **Savings Management Syste
 
 ---
 
-## 5. STAFF — Transactions
+## 5. ADMIN — Transactions
 
 ### POST `/transactions`
 
@@ -576,7 +576,7 @@ This document describes the API specification for the **Savings Management Syste
 
 ---
 
-### GET `/transactions?accountCode=ACC-0001&page=1&perPage=20&sort=occurredAt,desc&type=WITHDRAW&from=2025-09-01&to=2025-09-30&q=note`  
+### GET `/transactions?accountCode=ACC-0001&page=1&perPage=20&sort=occurredAt,desc&type=WITHDRAW&from=2025-09-01&to=2025-09-30&q=note`
 
 **200**
 

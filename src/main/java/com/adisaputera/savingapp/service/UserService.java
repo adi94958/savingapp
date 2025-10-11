@@ -3,11 +3,12 @@ package com.adisaputera.savingapp.service;
 import com.adisaputera.savingapp.dto.message.ApiResponse;
 import com.adisaputera.savingapp.dto.message.MetadataResponse;
 import com.adisaputera.savingapp.dto.request.ChangePasswordRequestDTO;
-import com.adisaputera.savingapp.dto.request.UserCreateRequestDTO;
-import com.adisaputera.savingapp.dto.request.UserUpdateRequestDTO;
+import com.adisaputera.savingapp.dto.request.CreateNasabahRequestDTO;
+import com.adisaputera.savingapp.dto.request.UpdateNasabahRequestDTO;
 import com.adisaputera.savingapp.model.RoleEnum;
 import com.adisaputera.savingapp.model.User;
 import com.adisaputera.savingapp.repository.UserRepository;
+import com.adisaputera.savingapp.util.UserUtil;
 
 import jakarta.transaction.Transactional;
 
@@ -38,7 +39,34 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public ApiResponse<UserResponseDTO> createUser(UserCreateRequestDTO request) {
+    public ApiResponse<UserResponseDTO> getProfile() {
+        User user = UserUtil.getCurrentLoggedInUser(userRepository);
+        
+        UserResponseDTO userDto = UserResponseDTO.builder()
+                .id(user.getId().toString())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .address(user.getAddress())
+                .phone(user.getPhone())
+                .createdAt(user.getCreatedAt().toString())
+                .build();
+        
+        return ApiResponse.success("User profile retrieved successfully", userDto);
+    }
+
+    public ApiResponse<String> changePassword(ChangePasswordRequestDTO request) {
+        User user = UserUtil.getCurrentLoggedInUser(userRepository);
+        
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadRequestException("Old password is incorrect");
+        }
+        
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        return ApiResponse.success("Password changed successfully", null);
+    }
+
+    public ApiResponse<UserResponseDTO> createNasabah(CreateNasabahRequestDTO request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
@@ -47,7 +75,7 @@ public class UserService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(RoleEnum.valueOf(request.getRole()))
+                .role(RoleEnum.nasabah) 
                 .address(request.getAddress())
                 .phone(request.getPhone())
                 .build();
@@ -57,29 +85,28 @@ public class UserService {
                 .id(savedUser.getId().toString())
                 .fullName(savedUser.getFullName())
                 .email(savedUser.getEmail())
-                .role(savedUser.getRole().name())
                 .address(savedUser.getAddress())
                 .phone(savedUser.getPhone())
                 .createdAt(savedUser.getCreatedAt().toString())
                 .build());
 
-        return ApiResponse.success("User added successfully", userDto);
+        return ApiResponse.success("Nasabah added successfully", userDto);
     }
 
-    public ApiResponse<List<UserResponseDTO>> getUserList(int page, int perPage, String sortBy, String sortDirection, String keyword) {
+    public ApiResponse<List<UserResponseDTO>> getNasabahList(int page, int perPage, String sortBy, String sortDirection, String keyword) {
         int pageIndex = page > 0 ? page -1 : 0;
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         Pageable pageable = PageRequest.of(pageIndex, perPage, sort);
 
         Page<User> userPage;
         if (StringUtils.hasText(keyword)) {
-            userPage = userRepository.findByFullNameContainingIgnoreCase(keyword, pageable);
+            userPage = userRepository.findByRoleAndFullNameContainingIgnoreCase(RoleEnum.nasabah, keyword, pageable);
         } else {
-            userPage = userRepository.findAll(pageable);
+            userPage = userRepository.findByRole(RoleEnum.nasabah, pageable);
         }
 
         if (userPage.isEmpty()) {
-            throw new ResourceNotFoundException("User not found");
+            throw new ResourceNotFoundException("Nasabah not found");
         }
 
         List<UserResponseDTO> userDtos = userPage.getContent().stream()
@@ -87,7 +114,6 @@ public class UserService {
                     .id(user.getId().toString())
                     .fullName(user.getFullName())
                     .email(user.getEmail())
-                    .role(user.getRole().name())
                     .address(user.getAddress())
                     .phone(user.getPhone())
                     .createdAt(user.getCreatedAt().toString())
@@ -101,40 +127,49 @@ public class UserService {
                 .total(userPage.getTotalPages())
                 .build();
 
-        return ApiResponse.success("User list retrieved successfully", userDtos, metadata);
+        return ApiResponse.success("Nasabah list retrieved successfully", userDtos, metadata);
     }
 
-    public ApiResponse<UserResponseDTO> getUserById(UUID userId) {
+    public ApiResponse<UserResponseDTO> getNasabahById(UUID userId) {
         Optional<User> userOptional = userRepository.findById(userId);
 
         if (userOptional.isEmpty()) {
-            throw new ResourceNotFoundException("User not found");
+            throw new ResourceNotFoundException("Nasabah not found");
         }
 
         User user = userOptional.get();
+        
         UserResponseDTO userDto = UserResponseDTO.builder()
                 .id(user.getId().toString())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
                 .address(user.getAddress())
                 .phone(user.getPhone())
                 .createdAt(user.getCreatedAt().toString())
                 .build(
         );
-        return ApiResponse.success("User retrieved successfully", userDto);
+        return ApiResponse.success("Nasabah retrieved successfully", userDto);
     }
 
-    public ApiResponse<UserResponseDTO> updateUser(UUID userId, UserUpdateRequestDTO request) {
+    public ApiResponse<UserResponseDTO> updateProfile(UpdateNasabahRequestDTO request) {
+        User user = UserUtil.getCurrentLoggedInUser(userRepository);
+        return updateUser(user.getId(), request);
+    }
+
+    public ApiResponse<UserResponseDTO> updateNasabah(UUID userId, UpdateNasabahRequestDTO request) {
+        return updateUser(userId, request);
+    }
+
+    public ApiResponse<UserResponseDTO> updateUser(UUID userId, UpdateNasabahRequestDTO request) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
             throw new ResourceNotFoundException("User not found");
         }
 
         User user = userOptional.get();
+        
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
-        user.setRole(RoleEnum.valueOf(request.getRole()));
         user.setAddress(request.getAddress());
         user.setPhone(request.getPhone());
         userRepository.save(user);
@@ -143,7 +178,6 @@ public class UserService {
                 .id(user.getId().toString())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
                 .address(user.getAddress())
                 .phone(user.getPhone())
                 .createdAt(user.getCreatedAt().toString())
@@ -151,26 +185,19 @@ public class UserService {
         return ApiResponse.success("User updated successfully", userDto);
     }
 
-    public ApiResponse<String> changePassword(UUID userId, ChangePasswordRequestDTO request) {
+    public ApiResponse<String> deleteNasabah(UUID userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
-            throw new ResourceNotFoundException("User not found");
+            throw new ResourceNotFoundException("User", "id", userId);
         }
+        
         User user = userOptional.get();
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new BadRequestException("Old password is incorrect");
-        }
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-        return ApiResponse.success("Password changed successfully", null);
-    }
 
-    public ApiResponse<String> deleteUser(UUID userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty()) {
-            throw new ResourceNotFoundException("User", "id", userOptional.get().getId());
+        if (user.getRole() != RoleEnum.nasabah) {
+            throw new BadRequestException("Only 'nasabah' users can be deleted through this endpoint");
         }
+        
         userRepository.deleteById(userId);
-        return ApiResponse.success("User deleted successfully", null);
+        return ApiResponse.success("Nasabah deleted successfully", null);
     }
 }

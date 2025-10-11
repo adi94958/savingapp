@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class AccountCreateRequestDTO {
+public class CreateAccountRequestDTO {
     @JsonProperty("user_id")
     @NotBlank(message = "User ID is required")
     private String userId;

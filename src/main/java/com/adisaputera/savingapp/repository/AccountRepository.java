@@ -14,6 +14,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByUserId(User userId);
     Page<Account> findByUserIdFullNameContainingIgnoreCase(String keyword, Pageable pageable);
     List<Account> findAllByUserId(User user);
+    Page<Account> findAllByUserId(User user, Pageable pageable);
     Optional<Account> findByAccountCode(String accountCode);
     Page<Account> findAllByAccountCode(Account accountCode, Pageable pageable);
+    Long countByIsActive(Boolean isActive);
 }

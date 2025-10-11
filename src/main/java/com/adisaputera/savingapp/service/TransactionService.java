@@ -19,12 +19,16 @@ import com.adisaputera.savingapp.dto.message.MetadataResponse;
 import com.adisaputera.savingapp.dto.request.CreateTransactionRequestDTO;
 import com.adisaputera.savingapp.dto.response.TransactionResponseDTO;
 import com.adisaputera.savingapp.exception.BadRequestException;
+import com.adisaputera.savingapp.exception.ForbiddenException;
 import com.adisaputera.savingapp.exception.ResourceNotFoundException;
 import com.adisaputera.savingapp.model.Account;
 import com.adisaputera.savingapp.model.Transaction;
 import com.adisaputera.savingapp.model.TypeTransactionEnum;
+import com.adisaputera.savingapp.model.User;
 import com.adisaputera.savingapp.repository.AccountRepository;
 import com.adisaputera.savingapp.repository.TransactionRepository;
+import com.adisaputera.savingapp.repository.UserRepository;
+import com.adisaputera.savingapp.util.UserUtil;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,29 +39,54 @@ import lombok.RequiredArgsConstructor;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
-    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCode(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForAdmin(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+        // Admin bisa akses semua account tanpa validasi ownership
         Optional<Account> accountOpt = accountRepository.findByAccountCode(accountCode);
         if(accountOpt.isEmpty()) {
             throw new ResourceNotFoundException("Account not found");
         }
+        
+        Account account = accountOpt.get();
+        return getTransactionListByAccount(page, perPage, account, sortDirection, from, to, keyword);
+    }
 
+    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForNasabah(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+        // Nasabah hanya bisa akses account milik sendiri
+        User currentUser = UserUtil.getCurrentLoggedInUser(userRepository);
+        
+        Optional<Account> accountOpt = accountRepository.findByAccountCode(accountCode);
+        if(accountOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Account not found");
+        }
+        
+        Account account = accountOpt.get();
+        
+        // Validasi ownership
+        if (!account.getUserId().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("You can only access your own account transactions");
+        }
+        
+        return getTransactionListByAccount(page, perPage, account, sortDirection, from, to, keyword);
+    }
+
+    // Helper method untuk logic yang sama
+    private ApiResponse<List<TransactionResponseDTO>> getTransactionListByAccount(int page, int perPage, Account account, String sortDirection, LocalDate from, LocalDate to, String keyword) {
         if ((from != null && to == null) || (from == null && to != null)) {
             throw new BadRequestException("Both 'from' and 'to' parameters must be provided together or both should be empty");
         }
 
-        int pageIndex = page > 0 ? page -1 : 0;
+        int pageIndex = page > 0 ? page - 1 : 0;
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), "createdAt");
         Pageable pageable = PageRequest.of(pageIndex, perPage, sort);
 
-        Page<Transaction> transactionPage;
-        Account account = accountOpt.get();
-        
         // Set default values untuk filter
         LocalDateTime fromDateTime = (from != null) ? from.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime toDateTime = (to != null) ? to.atTime(LocalTime.MAX) : LocalDateTime.now();
         String searchKeyword = (StringUtils.hasText(keyword)) ? keyword : "";
         
+        Page<Transaction> transactionPage;
         if (StringUtils.hasText(keyword) || from != null || to != null) {
             transactionPage = transactionRepository.findByAccountCode_AccountCodeAndOccurredAtBetweenAndNoteContainingIgnoreCase(
                 account.getAccountCode(), fromDateTime, toDateTime, searchKeyword, pageable);
@@ -66,7 +95,7 @@ public class TransactionService {
         }
 
         if (transactionPage.isEmpty()) {
-            throw new ResourceNotFoundException("Transaction", "accountCode", accountCode);
+            throw new ResourceNotFoundException("Transaction", "accountCode", account.getAccountCode());
         }
 
         List<TransactionResponseDTO> transactionDtos = transactionPage.getContent().stream()
@@ -91,6 +120,7 @@ public class TransactionService {
             .size(transactionPage.getSize())
             .total(transactionPage.getTotalPages())
             .build();
+            
         return ApiResponse.success("Transactions retrieved successfully", transactionDtos, metadata);
     }
 

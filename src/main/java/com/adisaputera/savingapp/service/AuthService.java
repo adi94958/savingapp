@@ -51,7 +51,6 @@ public class AuthService {
         .id(user.getId().toString())
         .fullName(user.getFullName())
         .email(user.getEmail())
-        .role(user.getRole().name())
         .address(user.getAddress())
         .phone(user.getPhone())
         .createdAt(user.getCreatedAt().toString())

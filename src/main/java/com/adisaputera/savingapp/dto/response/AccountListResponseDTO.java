@@ -12,21 +12,24 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UserResponseDTO {
-    @JsonProperty("id")
-    private String id;
+public class AccountListResponseDTO {
+    @JsonProperty("account_code")
+    private String accountCode;
 
-    @JsonProperty("full_name")
-    private String fullName;
+    @JsonProperty("user")
+    private UserResponseDTO user;
 
-    @JsonProperty("email")
-    private String email;
+    @JsonProperty("is_active")
+    private Boolean isActive;
 
-    @JsonProperty("address")
-    private String address;
+    @JsonProperty("total_deposit")
+    private Long totalDeposit;
 
-    @JsonProperty("phone")
-    private String phone;
+    @JsonProperty("total_withdraw")
+    private Long totalWithdraw;
+
+    @JsonProperty("balance")
+    private Long balance;
 
     @JsonProperty("created_at")
     private String createdAt;

@@ -16,8 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.adisaputera.savingapp.dto.message.ApiResponse;
-import com.adisaputera.savingapp.dto.request.AccountCreateRequestDTO;
-import com.adisaputera.savingapp.dto.response.AccountResponseDTO;
+import com.adisaputera.savingapp.dto.request.CreateAccountRequestDTO;
+import com.adisaputera.savingapp.dto.response.AccountListResponseDTO;
+import com.adisaputera.savingapp.dto.response.AccountMeResponseDTO;
 import com.adisaputera.savingapp.service.AccountService;
 
 import jakarta.validation.Valid;
@@ -32,30 +33,30 @@ public class AccountController {
     private final AccountService accountService;
 
     @PostMapping(
-        path = "/staff/account/create", 
+        path = "/admin/account/create", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<AccountResponseDTO>> createAccountNasabah(@Valid @RequestBody AccountCreateRequestDTO request) {
-        ApiResponse<AccountResponseDTO> response = accountService.createAccount(request);
+    public ResponseEntity<ApiResponse<AccountListResponseDTO>> createAccountNasabah(@Valid @RequestBody CreateAccountRequestDTO request) {
+        ApiResponse<AccountListResponseDTO> response = accountService.createAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping(
-        path = "/staff/account/list", 
+        path = "/admin/account/list", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<List<AccountResponseDTO>>> getAccountList(
+    public ResponseEntity<ApiResponse<List<AccountListResponseDTO>>> getAccountList(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int perPage,
         @RequestParam(defaultValue = "asc") String sortDirection,
         @RequestParam(required = false) UUID userId,
         @RequestParam(required = false) String keyword) {
-        ApiResponse<List<AccountResponseDTO>> response = accountService.getAccountList(page, perPage, sortDirection, userId, keyword);
+        ApiResponse<List<AccountListResponseDTO>> response = accountService.getAccountList(page, perPage, sortDirection, userId, keyword);
         return ResponseEntity.status(HttpStatus.OK).body(response);
         }
 
     @PatchMapping(
-        path = "/staff/account/update/{accountCode}/status", 
+        path = "/admin/account/update/{accountCode}/status", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> updateAccountStatus(
@@ -67,7 +68,7 @@ public class AccountController {
     }
 
     @DeleteMapping(
-        path = "/staff/account/delete/{accountCode}/delete", 
+        path = "/admin/account/delete/{accountCode}/delete", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> deleteAccount(
@@ -78,13 +79,17 @@ public class AccountController {
     }
 
     @GetMapping(
-        path = "/nasabah/account/{userId}", 
+        path = "/nasabah/account/me", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<List<AccountResponseDTO>>> getAccountByUserId(
-        @PathVariable String userId
+    public ResponseEntity<ApiResponse<List<AccountMeResponseDTO>>> getAccountMe(
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "10") int perPage,
+        @RequestParam(defaultValue = "asc") String sortDirection,
+        @RequestParam(defaultValue = "createdAt") String sortBy, //createdAt, balance, totalDeposit, totalWithdraw, accountCode
+        @RequestParam(required = false) String keyword
     ) {
-        ApiResponse<List<AccountResponseDTO>> response = accountService.getAccountByUserId(userId);
+        ApiResponse<List<AccountMeResponseDTO>> response = accountService.getAccountMe(page, perPage, sortDirection, sortBy, keyword);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

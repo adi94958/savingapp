@@ -31,7 +31,7 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @GetMapping(
-        path = "/staff/transaction/{accountCode}/list", 
+        path = "/admin/transaction/{accountCode}/list", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<List<TransactionResponseDTO>>> getTransactionByAccount(
@@ -43,18 +43,35 @@ public class TransactionController {
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(required = false) String keyword) {
-        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCode(page, perPage, accountCode, sortDirection, sortBy,from, to, keyword);
+        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForAdmin(page, perPage, accountCode, sortDirection, sortBy,from, to, keyword);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping(
-        path = "/staff/transaction/create",
+        path = "/admin/transaction/create",
         consumes = "application/json",
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<TransactionResponseDTO>> createTransaction(
-            @Valid @RequestBody CreateTransactionRequestDTO request) {
+    @Valid @RequestBody CreateTransactionRequestDTO request) {
         ApiResponse<TransactionResponseDTO> response = transactionService.createTransaction(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping(
+        path = "/nasabah/transaction/{accountCode}/list", 
+        produces = "application/json"
+    )
+    public ResponseEntity<ApiResponse<List<TransactionResponseDTO>>> getTransactionByAccountForNasabah(
+            @PathVariable String accountCode,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int perPage,
+            @RequestParam(defaultValue = "asc") String sortDirection, 
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(required = false) String keyword) {
+        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForNasabah(page, perPage, accountCode, sortDirection, sortBy, from, to, keyword);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

@@ -2,6 +2,7 @@ package com.adisaputera.savingapp.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,12 +13,9 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AccountResponseDTO {
+public class AccountMeResponseDTO {
     @JsonProperty("account_code")
     private String accountCode;
-
-    @JsonProperty("user")
-    private UserResponseDTO user;
 
     @JsonProperty("is_active")
     private Boolean isActive;

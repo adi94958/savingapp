@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.adisaputera.savingapp.dto.message.ApiResponse;
 import com.adisaputera.savingapp.dto.request.ChangePasswordRequestDTO;
-import com.adisaputera.savingapp.dto.request.UserCreateRequestDTO;
-import com.adisaputera.savingapp.dto.request.UserUpdateRequestDTO;
+import com.adisaputera.savingapp.dto.request.CreateNasabahRequestDTO;
+import com.adisaputera.savingapp.dto.request.UpdateNasabahRequestDTO;
 import com.adisaputera.savingapp.dto.response.UserResponseDTO;
 import com.adisaputera.savingapp.service.UserService;
 
@@ -36,64 +36,73 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping(
-        path = "/staff/user/create", 
+        path = "/admin/nasabah/create", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<UserResponseDTO>> createUser(@Valid @RequestBody UserCreateRequestDTO request) {
-        ApiResponse<UserResponseDTO> response = userService.createUser(request);
+    public ResponseEntity<ApiResponse<UserResponseDTO>> createNasabah(@Valid @RequestBody CreateNasabahRequestDTO request) {
+        ApiResponse<UserResponseDTO> response = userService.createNasabah(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping(
-        path = "/staff/user/list", 
+        path = "/admin/nasabah/list", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getUserList(
+    public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getNasabahList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int perPage,
             @RequestParam(defaultValue = "fullName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection, 
             @RequestParam(required = false) String keyword) {
-        ApiResponse<List<UserResponseDTO>> response = userService.getUserList(page, perPage, sortBy, sortDirection, keyword);
+        ApiResponse<List<UserResponseDTO>> response = userService.getNasabahList(page, perPage, sortBy, sortDirection, keyword);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping(
-        path = "/nasabah/user/{userId}/detail", 
+        path = "/profile/me", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<UserResponseDTO>> getUserById(@PathVariable UUID userId) {
-        ApiResponse<UserResponseDTO> response = userService.getUserById(userId);
+    public ResponseEntity<ApiResponse<UserResponseDTO>> getProfile() {
+        ApiResponse<UserResponseDTO> response = userService.getProfile();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
     
     @PutMapping(
-        path = "/nasabah/user/{userId}/update", 
+        path = "/admin/nasabah/{userId}/update", 
         consumes = "application/json", 
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(@PathVariable UUID userId, @RequestBody UserUpdateRequestDTO request) {
-        ApiResponse<UserResponseDTO> response = userService.updateUser(userId, request);
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateNasabah(@PathVariable UUID userId, @RequestBody UpdateNasabahRequestDTO request) {
+        ApiResponse<UserResponseDTO> response = userService.updateNasabah(userId, request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+        @PutMapping(
+        path = "/profile/update",
+        consumes = "application/json", 
+        produces = "application/json"
+    )
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateProfile(@RequestBody UpdateNasabahRequestDTO request) {
+        ApiResponse<UserResponseDTO> response = userService.updateProfile(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PatchMapping(
-        path = "/nasabah/user/{userId}/password",
+        path = "/profile/change-password",
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<String>> changePassword(
-            @PathVariable UUID userId,
             @RequestBody ChangePasswordRequestDTO request) {
-        ApiResponse<String> response = userService.changePassword(userId, request);
+        ApiResponse<String> response = userService.changePassword(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @DeleteMapping(
-        path = "/{userId}/delete",
+        path = "/admin/nasabah/{userId}/delete",
         produces = "application/json"
     )
-    public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable UUID userId) {
-        ApiResponse<String> response = userService.deleteUser(userId);
+    public ResponseEntity<ApiResponse<String>> deleteNasabah(@PathVariable UUID userId) {
+        ApiResponse<String> response = userService.deleteNasabah(userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

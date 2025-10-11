@@ -2,12 +2,14 @@ package com.adisaputera.savingapp.service;
 
 import com.adisaputera.savingapp.dto.message.ApiResponse;
 import com.adisaputera.savingapp.dto.message.MetadataResponse;
-import com.adisaputera.savingapp.dto.request.AccountCreateRequestDTO;
+import com.adisaputera.savingapp.dto.request.CreateAccountRequestDTO;
 import com.adisaputera.savingapp.model.Account;
 import com.adisaputera.savingapp.model.User;
 import com.adisaputera.savingapp.repository.AccountRepository;
 import com.adisaputera.savingapp.repository.UserRepository;
-import com.adisaputera.savingapp.dto.response.AccountResponseDTO;
+import com.adisaputera.savingapp.util.UserUtil;
+import com.adisaputera.savingapp.dto.response.AccountListResponseDTO;
+import com.adisaputera.savingapp.dto.response.AccountMeResponseDTO;
 import com.adisaputera.savingapp.dto.response.UserResponseDTO;
 import com.adisaputera.savingapp.exception.ResourceNotFoundException;
 
@@ -31,7 +33,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
-    public ApiResponse<AccountResponseDTO> createAccount(AccountCreateRequestDTO request) {
+    public ApiResponse<AccountListResponseDTO> createAccount(CreateAccountRequestDTO request) {
         Optional<User> userOpt = userRepository.findById(UUID.fromString(request.getUserId()));
         if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("Account not found");
@@ -48,7 +50,7 @@ public class AccountService {
                 .build();
         Account savedAccount = accountRepository.save(account);
 
-        AccountResponseDTO accountDto = AccountResponseDTO.builder()
+        AccountListResponseDTO accountDto = AccountListResponseDTO.builder()
                 .accountCode(savedAccount.getAccountCode())
                 .isActive(savedAccount.getIsActive())
                 .totalDeposit(savedAccount.getTotalDeposit())
@@ -64,7 +66,7 @@ public class AccountService {
         return ApiResponse.success("Account created successfully", accountDto);
     }
 
-    public ApiResponse<List<AccountResponseDTO>> getAccountList(int page, int perPage, String sortDirection, UUID userId, String keyword) {
+    public ApiResponse<List<AccountListResponseDTO>> getAccountList(int page, int perPage, String sortDirection, UUID userId, String keyword) {
         int pageIndex = page > 0 ? page -1 : 0;
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), "createdAt");
         Pageable pageable = PageRequest.of(pageIndex, perPage, sort);
@@ -81,11 +83,11 @@ public class AccountService {
         }
 
         // Konversi entitas User ke DTO
-        List<AccountResponseDTO> accountDtos = accountPage.getContent().stream()
+        List<AccountListResponseDTO> accountDtos = accountPage.getContent().stream()
             .map(account -> {
                 User user = account.getUserId();
 
-                return AccountResponseDTO.builder()
+                return AccountListResponseDTO.builder()
                     .accountCode(account.getAccountCode())
                     .isActive(account.getIsActive())
                     .totalDeposit(account.getTotalDeposit())
@@ -142,36 +144,45 @@ public class AccountService {
         return ApiResponse.success("Account deleted successfully", null);
     }
 
-    public ApiResponse<List<AccountResponseDTO>> getAccountByUserId(String userId) {
-        // Validasi user exists
-        Optional<User> userOpt = userRepository.findById(UUID.fromString(userId));
-        if (userOpt.isEmpty()) {
-            throw new ResourceNotFoundException("User", "id", userId);
+    public ApiResponse<List<AccountMeResponseDTO>> getAccountMe(int page, int perPage, String sortDirection, String sortBy, String keyword) {
+        User user = UserUtil.getCurrentLoggedInUser(userRepository);
+        
+        int pageIndex = page > 0 ? page - 1 : 0;
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+        Pageable pageable = PageRequest.of(pageIndex, perPage, sort);
+
+        Page<Account> accountPage = accountRepository.findAllByUserId(user, pageable);
+
+        if (StringUtils.hasText(keyword)) {
+            accountPage = accountRepository.findByUserIdFullNameContainingIgnoreCase(keyword, pageable);
+        } else {
+            accountPage = accountRepository.findAllByUserId(user, pageable);
         }
 
-        User user = userOpt.get();
-        List<Account> accounts = accountRepository.findAllByUserId(user);
-
-        if (accounts.isEmpty()) {
-            throw new ResourceNotFoundException("Account", "userId", userId);
+        if (accountPage.isEmpty()) {
+            throw new ResourceNotFoundException("Account not found");
         }
 
-        // Konversi ke DTO
-        List<AccountResponseDTO> accountDtos = accounts.stream()
-            .map(account -> AccountResponseDTO.builder()
+
+        // Konversi entitas Account ke DTO
+        List<AccountMeResponseDTO> accountDtos = accountPage.getContent().stream()
+            .map(account -> AccountMeResponseDTO.builder()
                 .accountCode(account.getAccountCode())
                 .isActive(account.getIsActive())
                 .totalDeposit(account.getTotalDeposit())
                 .totalWithdraw(account.getTotalWithdraw())
                 .balance(account.getBalance())
-                .user(UserResponseDTO.builder()
-                    .id(user.getId().toString())
-                    .fullName(user.getFullName())
-                    .build())
                 .createdAt(account.getCreatedAt().toString())
                 .build())
             .collect(Collectors.toList());
 
-        return ApiResponse.success("Accounts retrieved successfully", accountDtos);
+        // Buat objek pagination
+        MetadataResponse pagination = MetadataResponse.builder()
+            .page(accountPage.getNumber() + 1)
+            .size(accountPage.getSize())
+            .total(accountPage.getTotalPages())
+            .build();
+
+        return ApiResponse.success("Account retrieved successfully", accountDtos, pagination);
     }
 }

@@ -27,6 +27,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Value("${app.cors.allowed-origins}")
     private String[] allowedOrigins;
@@ -42,16 +43,21 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Admin/Staff only endpoints
-                        .requestMatchers("/api/staff/**").hasRole("staff")
+                        // Admin only endpoints
+                        .requestMatchers("/api/admin/**").hasRole("admin")
 
-                        // User endpoints (both USER and STAFF can access)
-                        .requestMatchers("/api/nasabah/**").hasAnyRole("nasabah", "staff")
+                        // Profile endpoints (both NASABAH and ADMIN can access)
+                        .requestMatchers("/api/profile/**").hasAnyRole("nasabah", "admin")
+
+                        // User endpoints (both USER and ADMIN can access)
+                        .requestMatchers("/api/nasabah/**").hasRole("nasabah")
 
                         // All other requests need authentication
                         .anyRequest().authenticated()
