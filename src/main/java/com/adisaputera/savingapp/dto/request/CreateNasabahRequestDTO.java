@@ -25,10 +25,6 @@ public class CreateNasabahRequestDTO {
     @NotBlank(message = "Password is required")
     private String password;
 
-    @JsonProperty("role")
-    @NotBlank(message = "Role is required")
-    private String role;
-
     @JsonProperty("address")
     private String address;
     

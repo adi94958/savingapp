@@ -21,10 +21,6 @@ public class UpdateNasabahRequestDTO {
     @NotBlank(message = "Email is required")
     private String email;
 
-    @JsonProperty("role")
-    @NotBlank(message = "Role is required")
-    private String role;
-
     @JsonProperty("address")
     private String address;
     

@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -39,7 +40,7 @@ public class DataLoader {
             int createdTxs = 0;
 
             // ==== 1) Admin (tetap) ====
-            User admin = ensureUser(
+            ensureUser(
                     userRepository,
                     passwordEncoder,
                     "Adi Saputera",
@@ -49,40 +50,94 @@ public class DataLoader {
                     "08123456789"
             );
 
-            // ==== 2) Seed nasabah nama realistis ====
-            List<UserSeed> seeds = new ArrayList<>(List.of(
-                    new UserSeed("Shandina Aulia", "shandina@example.com", "Jalan Teratai No. 5, Bandung", "08122000" + rnd4()),
-                    new UserSeed("Adrian Eka", "adrian@example.com", "Jalan Melati No. 12, Cimahi", "0898765" + rnd4()),
-                    new UserSeed("Rizky Ramadhan", "rizky.ramadhan@example.com", "Jalan Sukajadi No. 21, Bandung", "0812211" + rnd4()),
-                    new UserSeed("Putri Maharani", "putri.maharani@example.com", "Jalan Cibogo No. 7, Bandung", "0821222" + rnd4()),
-                    new UserSeed("Fajar Nugraha", "fajar.nugraha@example.com", "Jalan Cikutra No. 10, Bandung", "0858223" + rnd4()),
-                    new UserSeed("Laras Kusuma", "laras.kusuma@example.com", "Jalan Buah Batu No. 88, Bandung", "0813901" + rnd4()),
-                    new UserSeed("Andi Pratama", "andi.pratama@example.com", "Jalan Kopo No. 33, Bandung", "0821990" + rnd4()),
-                    new UserSeed("Salsabila Zahra", "salsa.zahra@example.com", "Jalan Asia Afrika No. 1, Bandung", "0813777" + rnd4()),
-                    new UserSeed("Rina Puspita", "rina.puspita@example.com", "Jalan Dago Atas No. 14, Bandung", "0812333" + rnd4()),
-                    new UserSeed("Dio Mahendra", "dio.mahendra@example.com", "Jalan Antapani No. 4, Bandung", "0838123" + rnd4())
-            ));
+            // ==== 2) Seed nasabah dengan data realistis ====
+            // Kamu bisa atur jumlahnya di sini
+            int targetNasabah = 30;
 
-            // Tambahkan 15 user generik (idempotent by email)
-            for (int i = 1; i <= 15; i++) {
-                String name = "User " + String.format("%02d", i);
-                String email = "user" + String.format("%02d", i) + "@example.com";
-                String addr = "Jalan Mawar Blok " + (char) ('A' + (i % 6)) + " No. " + (10 + i) + ", Bandung";
-                String phone = "08" + (70000000 + i * 137);
-                seeds.add(new UserSeed(name, email, addr, phone));
+            // Base nama (first/last) untuk kombinasi
+            String[] firstNames = {
+                    "Rizky","Muhammad","Nurul","Dewi","Aulia","Rafi","Fajar","Dio","Putri","Salsa",
+                    "Laras","Andi","Dimas","Maya","Nadia","Rina","Farhan","Bagas","Yusuf","Ari",
+                    "Siti","Anisa","Kenan","Daffa","Adrian","Shandina","Nabila","Vina","Rizka","Hendra",
+                    "Arif","Rahma","Lutfi","Fadli","Adit","Bayu","Indah","Nanda","Ilham","Wulan"
+            };
+            String[] lastNames = {
+                    "Ramadhan","Saputra","Pratama","Mahendra","Kusuma","Zahra","Puspita","Nugraha","Wijaya","Putra",
+                    "Hidayat","Permata","Siregar","Kurniawan","Santoso","Utami","Prameswari","Gunawan","Pangestu","Cahyadi",
+                    "Wibowo","Handayani","Andini","Maulida","Maulana","Fauziah","Lestari","Fadhilah","Pradana","Setiawan"
+            };
+
+            // Kota + kecamatan/kelurahan + nama jalan yang umum
+            String[] cities = {
+                    "Bandung","Cimahi","Majalengka","Jakarta Selatan","Bekasi","Depok","Bogor","Tangerang",
+                    "Surabaya","Sleman","Yogyakarta","Semarang","Solo","Malang","Denpasar","Makassar","Medan","Padang"
+            };
+            String[] districts = {
+                    "Kiaracondong","Coblong","Sukajadi","Antapani","Buah Batu","Cimahi Tengah","Parongpong","Lembang",
+                    "Kebayoran Baru","Setiabudi","Cipayung","Cinere","Sukmajaya","Ciledug","Bojongsoang","Dayeuhkolot",
+                    "Lowokwaru","Tegalsari","Umbulharjo","Jetis"
+            };
+            String[] streets = {
+                    "Jl. Melati","Jl. Mawar","Jl. Dahlia","Jl. Kenanga","Jl. Cempaka","Jl. Teratai","Jl. Flamboyan",
+                    "Jl. Anggrek","Jl. Bougenville","Jl. Kamboja","Jl. Asia Afrika","Jl. Dago","Jl. Cikutra","Jl. Kopo",
+                    "Jl. Pasteur","Jl. Cibogo","Jl. Antapani","Jl. Sukabumi","Jl. Merdeka","Jl. Dipatiukur"
+            };
+
+            // Domain email realistis
+            String[] emailDomains = {"gmail.com","yahoo.com","outlook.com","hotmail.com"};
+
+            // Prefix operator Indonesia
+            String[] phonePrefixes = {
+                    "0811","0812","0813","0814","0815","0816","0817","0818","0819", // Telkomsel
+                    "0821","0822","0823",                                           // Telkomsel/AS
+                    "0851","0852","0853",                                           // Indosat
+                    "0895","0896","0897","0898","0899"                              // Tri/IM3/Axis
+            };
+
+            // Set untuk menjamin unik
+            Set<String> usedEmails = new HashSet<>();
+            Set<String> usedPhones = new HashSet<>();
+
+            List<UserSeed> seeds = new ArrayList<>();
+
+            // Tambahkan beberapa fixed (contoh nyata)
+            seeds.add(new UserSeed("Shandina Aulia","shandina@example.com","Jl. Teratai No. 5, Kiaracondong, Bandung","08122000"+rndDigits(4)));
+            seeds.add(new UserSeed("Adrian Eka","adrian@example.com","Jl. Melati No. 12, Cimahi Tengah, Cimahi","0898765"+rndDigits(4)));
+            seeds.add(new UserSeed("Rizky Ramadhan","rizky.ramadhan@example.com","Jl. Sukabumi No. 21, Coblong, Bandung","0812211"+rndDigits(4)));
+            seeds.add(new UserSeed("Putri Maharani","putri.maharani@example.com","Jl. Cibogo No. 7, Sukajadi, Bandung","0821222"+rndDigits(4)));
+            seeds.add(new UserSeed("Fajar Nugraha","fajar.nugraha@example.com","Jl. Cikutra No. 10, Antapani, Bandung","0858223"+rndDigits(4)));
+            seeds.add(new UserSeed("Laras Kusuma","laras.kusuma@example.com","Jl. Buah Batu No. 88, Buah Batu, Bandung","0813901"+rndDigits(4)));
+            seeds.add(new UserSeed("Andi Pratama","andi.pratama@example.com","Jl. Kopo No. 33, Bojongsoang, Bandung","0821990"+rndDigits(4)));
+            seeds.add(new UserSeed("Salsabila Zahra","salsa.zahra@example.com","Jl. Asia Afrika No. 1, Sumur Bandung, Bandung","0813777"+rndDigits(4)));
+            seeds.add(new UserSeed("Rina Puspita","rina.puspita@example.com","Jl. Dago Atas No. 14, Coblong, Bandung","0812333"+rndDigits(4)));
+            seeds.add(new UserSeed("Dio Mahendra","dio.mahendra@example.com","Jl. Antapani No. 4, Antapani, Bandung","0838123"+rndDigits(4)));
+
+            // Generate sisanya secara realistis
+            int need = Math.max(0, targetNasabah - seeds.size());
+            for (int i = 0; i < need; i++) {
+                String fullName = (pick(firstNames) + " " + pick(lastNames)).trim();
+                String email = uniqueEmailFromName(fullName, emailDomains, usedEmails);
+                String address = randomAddress(streets, districts, cities);
+                String phone = uniquePhone(phonePrefixes, usedPhones);
+                seeds.add(new UserSeed(fullName, email, address, phone));
             }
 
-            // Buat/ambil user nasabahnya
+            // Buat/ambil user nasabahnya (idempotent by email)
             List<User> nasabahList = new ArrayList<>();
             for (UserSeed s : seeds) {
-                User u = ensureUser(userRepository, passwordEncoder, s.fullName, s.email, RoleEnum.nasabah, s.address, s.phone);
+                // normalize dan pastikan unik untuk fixed seeds juga
+                String email = ensureUniqueEmail(s.email, usedEmails);
+                String phone = ensureUniquePhone(s.phone, usedPhones);
+
+                User u = ensureUser(userRepository, passwordEncoder, s.fullName, email, RoleEnum.nasabah, s.address, phone);
                 nasabahList.add(u);
             }
 
-            // Hitung user baru yang dibuat (kasar, untuk log)
-            createdUsers = (int) nasabahList.stream().filter(u -> u.getCreatedAt() != null && u.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5))).count();
+            createdUsers = (int) nasabahList.stream()
+                    .filter(u -> u.getCreatedAt() != null && u.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5)))
+                    .count();
 
-            // ==== 3) Untuk tiap nasabah, buat 1–3 rekening ====
+            // ==== 3) Untuk tiap nasabah, buat 1–3 rekening + histori realistis ====
             for (User n : nasabahList) {
                 List<Account> existing = accountRepository.findAllByUserId(n);
                 if (!existing.isEmpty()) {
@@ -90,29 +145,27 @@ public class DataLoader {
                     continue;
                 }
 
-                int accountCount = rndInt(1, 3); // 1..3
+                int accountCount = rndInt(1, 3);
                 for (int i = 0; i < accountCount; i++) {
-                    boolean active = (i == 0) || rndBool(); // minimal 1 aktif
+                    boolean active = (i == 0) || rndBool();
                     Account acc = Account.builder()
                             .userId(n)
                             .isActive(active)
-                            .totalDeposit(0L)   // akan diisi setelah generate transaksi
-                            .totalWithdraw(0L)  // akan diisi setelah generate transaksi
-                            .balance(0L)        // akan diisi setelah generate transaksi
-                            .createdAt(randomDateTimeWithinMonths(8, 6)) // rekening dibuat 6–8 bulan lalu
+                            .totalDeposit(0L)
+                            .totalWithdraw(0L)
+                            .balance(0L)
+                            .createdAt(randomDateTimeWithinMonths(8, 6))
                             .build();
 
                     acc = accountRepository.saveAndFlush(acc);
 
-                    // Buat transaksi realistis
-                    int txCount = active ? rndInt(15, 45) : rndInt(0, 5); // aktif punya banyak histori
+                    int txCount = active ? rndInt(15, 45) : rndInt(0, 5);
                     List<Transaction> generated = generateTransactionsForAccount(acc, txCount);
                     if (!generated.isEmpty()) {
                         transactionRepository.saveAll(generated);
                         transactionRepository.flush();
                     }
 
-                    // Hitung ulang aggregate
                     long totalDep = generated.stream()
                             .filter(t -> t.getType() == TypeTransactionEnum.deposit)
                             .mapToLong(Transaction::getAmount).sum();
@@ -139,7 +192,6 @@ public class DataLoader {
                 }
             }
 
-            // Ringkasan
             long totalUsers = userRepository.count();
             long totalAccounts = accountRepository.count();
             long totalTransactions = transactionRepository.count();
@@ -191,17 +243,92 @@ public class DataLoader {
         });
     }
 
+    // ====== Realistic generator ======
+
+    private static String uniqueEmailFromName(String fullName, String[] domains, Set<String> used) {
+        String base = slugify(fullName).replace("-", ".");
+        String domain = pick(domains);
+        String candidate = base + "@" + domain;
+        int attempt = 1;
+        while (used.contains(candidate)) {
+            candidate = base + (attempt++) + "@" + domain;
+        }
+        used.add(candidate);
+        return candidate;
+    }
+
+    private static String ensureUniqueEmail(String email, Set<String> used) {
+        if (!used.contains(email)) {
+            used.add(email);
+            return email;
+        }
+        String local = email.substring(0, email.indexOf('@'));
+        String domain = email.substring(email.indexOf('@'));
+        int attempt = 1;
+        String candidate = local + attempt + domain;
+        while (used.contains(candidate)) {
+            attempt++;
+            candidate = local + attempt + domain;
+        }
+        used.add(candidate);
+        return candidate;
+    }
+
+    private static String uniquePhone(String[] prefixes, Set<String> used) {
+        String candidate;
+        do {
+            String prefix = pick(prefixes);
+            // total digit 11–13 wajar di ID
+            int totalLen = rndInt(11, 13);
+            int need = totalLen - prefix.length();
+            candidate = prefix + rndDigits(need);
+        } while (used.contains(candidate));
+        used.add(candidate);
+        return candidate;
+    }
+
+    private static String ensureUniquePhone(String phone, Set<String> used) {
+        if (!used.contains(phone)) {
+            used.add(phone);
+            return phone;
+        }
+        String candidate;
+        do {
+            candidate = phone + rndDigits(1);
+        } while (used.contains(candidate));
+        used.add(candidate);
+        return candidate;
+    }
+
+    private static String randomAddress(String[] streets, String[] districts, String[] cities) {
+        String street = pick(streets);
+        int no = rndInt(1, 199);
+        String dist = pick(districts);
+        String city = pick(cities);
+        int rt = rndInt(1, 12);
+        int rw = rndInt(1, 12);
+        return String.format("%s No. %d, RT %02d/RW %02d, %s, %s", street, no, rt, rw, dist, city);
+    }
+
+    private static String slugify(String input) {
+        // hilangkan aksen & karakter non-alfanumerik → huruf kecil + dash
+        String now = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        now = now.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+","-");
+        return now.replaceAll("(^-|-$)", "");
+    }
+
+    // ====== Transaksi realistis (punyamu dipertahankan) ======
+
     private List<Transaction> generateTransactionsForAccount(Account account, int txCount) {
         List<Transaction> txs = new ArrayList<>();
         if (txCount <= 0) return txs;
 
-        // Mulai dari 6 bulan lalu sampai hari ini
         LocalDate start = LocalDate.now().minusMonths(6).withDayOfMonth(1);
         LocalDate end = LocalDate.now();
 
         long balance = 0L;
 
-        // Template event realistis
         String[] depositNotes = {
                 "Gaji Bulanan", "Transfer dari Orang Tua", "Bonus Kinerja", "Refund Marketplace",
                 "Penjualan Online", "Pengembalian Dana", "Top-up Dompet Digital", "Transfer Rekan"
@@ -211,20 +338,18 @@ public class DataLoader {
                 "Cicilan", "Beli Pulsa", "Makan di Restoran", "Transportasi Online", "Belanja E-commerce"
         };
 
-        // Sisipkan pola gaji bulanan (tanggal 25–28)
         LocalDate cursor = start;
         while (!cursor.isAfter(end)) {
             LocalDate salaryDate = cursor.withDayOfMonth(Math.min(cursor.lengthOfMonth(), rndInt(25, 28)));
-            long salaryAmount = sampleSalary(); // 2.5–8 jt
+            long salaryAmount = sampleSalary();
             balance += salaryAmount;
             txs.add(buildTx(account, TypeTransactionEnum.deposit, salaryAmount, "Gaji Bulanan", randomTime(salaryDate), balance));
             cursor = cursor.plusMonths(1);
         }
 
-        // Tambah transaksi acak lain sampai cap txCount (di luar gaji)
         int remaining = Math.max(0, txCount - txs.size());
         for (int i = 0; i < remaining; i++) {
-            boolean isDeposit = rndBoolWeighted(45); // ~45% deposit, 55% withdraw
+            boolean isDeposit = rndBoolWeighted(45);
             if (isDeposit) {
                 long amt = sampleDepositAmount();
                 balance += amt;
@@ -232,9 +357,7 @@ public class DataLoader {
                 txs.add(buildTx(account, TypeTransactionEnum.deposit, amt, pick(depositNotes), when, balance));
             } else {
                 long amt = sampleWithdrawAmount();
-                // Pastikan tidak minus (realistis: bank menolak jika tidak cukup)
                 if (amt > balance) {
-                    // kecilkan menjadi 10–40% dari balance (min 10k), atau skip jika balance 0
                     if (balance <= 10_000) continue;
                     long cap = Math.max(10_000L, (long) (balance * rndDouble(0.1, 0.4)));
                     amt = Math.min(amt, cap);
@@ -245,20 +368,14 @@ public class DataLoader {
             }
         }
 
-        // Urutkan by occurredAt (naik) lalu createdAt
         txs.sort(Comparator.comparing(Transaction::getOccurredAt).thenComparing(Transaction::getCreatedAt));
 
-        // Recalculate balance snapshot in case the random ordering changed sequence
         long running = 0L;
         for (Transaction t : txs) {
-            if (t.getType() == TypeTransactionEnum.deposit) {
-                running += t.getAmount();
-            } else {
-                running -= t.getAmount();
-            }
+            if (t.getType() == TypeTransactionEnum.deposit) running += t.getAmount();
+            else running -= t.getAmount();
             t.setBalance(running);
         }
-
         return txs;
     }
 
@@ -276,9 +393,10 @@ public class DataLoader {
 
     // ---------------------- Random Utils ----------------------
 
-    private static String rnd4() {
-        int n = ThreadLocalRandom.current().nextInt(1000, 9999);
-        return String.valueOf(n);
+    private static String rndDigits(int n) {
+        StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++) sb.append(ThreadLocalRandom.current().nextInt(0, 10));
+        return sb.toString();
     }
 
     private static boolean rndBool() {
@@ -298,7 +416,7 @@ public class DataLoader {
         return ThreadLocalRandom.current().nextDouble(minInclusive, maxInclusive);
     }
 
-    private static String pick(String[] arr) {
+    private static <T> T pick(T[] arr) {
         return arr[ThreadLocalRandom.current().nextInt(arr.length)];
     }
 
@@ -321,21 +439,19 @@ public class DataLoader {
     }
 
     private static long sampleSalary() {
-        // 2.5–8 jt dengan sedikit variasi ribuan (lebih real)
         long base = rndInt(2_500_000, 8_000_000);
         long jitter = rndInt(0, 90) * 1_000L;
         return base + jitter;
     }
 
     private static long sampleDepositAmount() {
-        // 50k–2jt untuk transfer/topup/bonus
         int[] steps = {50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 300_000, 500_000, 1_000_000, 1_500_000, 2_000_000};
         return steps[rndInt(0, steps.length - 1)];
     }
 
     private static long sampleWithdrawAmount() {
-        // 20k–1.5jt untuk belanja/ATM/bayar tagihan
         int[] steps = {20_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 300_000, 400_000, 500_000, 750_000, 1_000_000, 1_250_000, 1_500_000};
         return steps[rndInt(0, steps.length - 1)];
     }
 }
+    

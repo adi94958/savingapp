@@ -67,7 +67,9 @@ public class UserService {
     }
 
     public ApiResponse<UserResponseDTO> createNasabah(CreateNasabahRequestDTO request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        
+        if (userOpt.isPresent()) {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
 
@@ -158,7 +160,7 @@ public class UserService {
 
     public ApiResponse<UserResponseDTO> updateNasabah(UUID userId, UpdateNasabahRequestDTO request) {
         return updateUser(userId, request);
-    }
+    }   
 
     public ApiResponse<UserResponseDTO> updateUser(UUID userId, UpdateNasabahRequestDTO request) {
         Optional<User> userOptional = userRepository.findById(userId);

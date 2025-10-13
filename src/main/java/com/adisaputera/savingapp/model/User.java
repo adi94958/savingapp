@@ -48,7 +48,14 @@ public class User {
     @Size(max = 15)
     private String phone;
 
-    @Column(name = "created_at", nullable = true, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
-    private LocalDateTime createdAt; 
+    private LocalDateTime createdAt;
+    
+    @PrePersist
+    public void prePersist() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    } 
 }

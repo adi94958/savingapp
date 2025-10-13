@@ -49,7 +49,7 @@ public class TransactionService {
         }
         
         Account account = accountOpt.get();
-        return getTransactionListByAccount(page, perPage, account, sortDirection, from, to, keyword);
+        return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to, keyword);
     }
 
     public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForNasabah(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
@@ -68,17 +68,19 @@ public class TransactionService {
             throw new ForbiddenException("You can only access your own account transactions");
         }
         
-        return getTransactionListByAccount(page, perPage, account, sortDirection, from, to, keyword);
+        return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to, keyword);
     }
 
     // Helper method untuk logic yang sama
-    private ApiResponse<List<TransactionResponseDTO>> getTransactionListByAccount(int page, int perPage, Account account, String sortDirection, LocalDate from, LocalDate to, String keyword) {
+    private ApiResponse<List<TransactionResponseDTO>> getTransactionListByAccount(int page, int perPage, Account account, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
         if ((from != null && to == null) || (from == null && to != null)) {
             throw new BadRequestException("Both 'from' and 'to' parameters must be provided together or both should be empty");
         }
 
         int pageIndex = page > 0 ? page - 1 : 0;
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), "createdAt");
+        Sort sort = sortDirection.equals("desc") 
+            ? Sort.by(sortBy).descending() 
+            : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(pageIndex, perPage, sort);
 
         // Set default values untuk filter

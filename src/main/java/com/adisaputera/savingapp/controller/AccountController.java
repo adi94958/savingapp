@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.adisaputera.savingapp.dto.message.ApiResponse;
+import com.adisaputera.savingapp.dto.request.ChangeAccountStatusRequestDTO;
 import com.adisaputera.savingapp.dto.request.CreateAccountRequestDTO;
+import com.adisaputera.savingapp.dto.response.AccountDetailResponseDTO;
 import com.adisaputera.savingapp.dto.response.AccountListResponseDTO;
 import com.adisaputera.savingapp.dto.response.AccountMeResponseDTO;
 import com.adisaputera.savingapp.service.AccountService;
@@ -49,9 +51,10 @@ public class AccountController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int perPage,
         @RequestParam(defaultValue = "asc") String sortDirection,
+        @RequestParam(defaultValue = "createdAt") String sortBy, //createdAt, balance, totalDeposit, totalWithdraw, accountCode
         @RequestParam(required = false) UUID userId,
-        @RequestParam(required = false) String keyword) {
-        ApiResponse<List<AccountListResponseDTO>> response = accountService.getAccountList(page, perPage, sortDirection, userId, keyword);
+        @RequestParam(required = false) String keyword) { // keyword searches by accountCode
+        ApiResponse<List<AccountListResponseDTO>> response = accountService.getAccountList(page, perPage, sortDirection, sortBy, userId, keyword);
         return ResponseEntity.status(HttpStatus.OK).body(response);
         }
 
@@ -61,9 +64,21 @@ public class AccountController {
     )
     public ResponseEntity<ApiResponse<String>> updateAccountStatus(
         @PathVariable String accountCode,
-        @RequestBody boolean status
+        @RequestBody ChangeAccountStatusRequestDTO request
     ) {
-        ApiResponse<String> response = accountService.updateAccountStatus(accountCode, status);
+        request.setAccountCode(accountCode);
+        ApiResponse<String> response = accountService.updateAccountStatus(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping(
+        path = "/admin/account/detail/{accountCode}", 
+        produces = "application/json"
+    )
+    public ResponseEntity<ApiResponse<AccountDetailResponseDTO>> getAccountDetail(
+        @PathVariable String accountCode
+    ) {
+        ApiResponse<AccountDetailResponseDTO> response = accountService.getAccountDetail(accountCode);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -86,7 +101,7 @@ public class AccountController {
         @RequestParam(defaultValue = "1") int page,
         @RequestParam(defaultValue = "10") int perPage,
         @RequestParam(defaultValue = "asc") String sortDirection,
-        @RequestParam(defaultValue = "createdAt") String sortBy, //createdAt, balance, totalDeposit, totalWithdraw, accountCode
+        @RequestParam(defaultValue = "createdAt") String sortBy,
         @RequestParam(required = false) String keyword
     ) {
         ApiResponse<List<AccountMeResponseDTO>> response = accountService.getAccountMe(page, perPage, sortDirection, sortBy, keyword);
