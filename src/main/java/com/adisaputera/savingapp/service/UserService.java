@@ -148,8 +148,7 @@ public class UserService {
                 .address(user.getAddress())
                 .phone(user.getPhone())
                 .createdAt(user.getCreatedAt().toString())
-                .build(
-        );
+                .build();
         return ApiResponse.success("Nasabah retrieved successfully", userDto);
     }
 

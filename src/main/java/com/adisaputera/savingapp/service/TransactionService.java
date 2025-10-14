@@ -12,7 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.adisaputera.savingapp.dto.message.ApiResponse;
 import com.adisaputera.savingapp.dto.message.MetadataResponse;
@@ -41,7 +40,7 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
-    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForAdmin(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForAdmin(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to) {
         // Admin bisa akses semua account tanpa validasi ownership
         Optional<Account> accountOpt = accountRepository.findByAccountCode(accountCode);
         if(accountOpt.isEmpty()) {
@@ -49,10 +48,10 @@ public class TransactionService {
         }
         
         Account account = accountOpt.get();
-        return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to, keyword);
+    return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to);
     }
 
-    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForNasabah(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+    public ApiResponse<List<TransactionResponseDTO>> getTransactionByAccountCodeForNasabah(int page, int perPage, String accountCode, String sortDirection, String sortBy, LocalDate from, LocalDate to) {
         // Nasabah hanya bisa akses account milik sendiri
         User currentUser = UserUtil.getCurrentLoggedInUser(userRepository);
         
@@ -68,11 +67,11 @@ public class TransactionService {
             throw new ForbiddenException("You can only access your own account transactions");
         }
         
-        return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to, keyword);
+    return getTransactionListByAccount(page, perPage, account, sortDirection, sortBy, from, to);
     }
 
     // Helper method untuk logic yang sama
-    private ApiResponse<List<TransactionResponseDTO>> getTransactionListByAccount(int page, int perPage, Account account, String sortDirection, String sortBy, LocalDate from, LocalDate to, String keyword) {
+    private ApiResponse<List<TransactionResponseDTO>> getTransactionListByAccount(int page, int perPage, Account account, String sortDirection, String sortBy, LocalDate from, LocalDate to) {
         if ((from != null && to == null) || (from == null && to != null)) {
             throw new BadRequestException("Both 'from' and 'to' parameters must be provided together or both should be empty");
         }
@@ -86,12 +85,10 @@ public class TransactionService {
         // Set default values untuk filter
         LocalDateTime fromDateTime = (from != null) ? from.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime toDateTime = (to != null) ? to.atTime(LocalTime.MAX) : LocalDateTime.now();
-        String searchKeyword = (StringUtils.hasText(keyword)) ? keyword : "";
-        
         Page<Transaction> transactionPage;
-        if (StringUtils.hasText(keyword) || from != null || to != null) {
-            transactionPage = transactionRepository.findByAccountCode_AccountCodeAndOccurredAtBetweenAndNoteContainingIgnoreCase(
-                account.getAccountCode(), fromDateTime, toDateTime, searchKeyword, pageable);
+        if (from != null || to != null) {
+            transactionPage = transactionRepository.findByAccountCode_AccountCodeAndOccurredAtBetween(
+                account.getAccountCode(), fromDateTime, toDateTime, pageable);
         } else {
             transactionPage = transactionRepository.findByAccountCode_AccountCode(account.getAccountCode(), pageable);
         }

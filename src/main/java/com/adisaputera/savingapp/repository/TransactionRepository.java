@@ -22,6 +22,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
         Pageable pageable
     );
     
+    Page<Transaction> findByAccountCode_AccountCodeAndOccurredAtBetween(
+        String accountCode,
+        LocalDateTime from,
+        LocalDateTime to,
+        Pageable pageable
+    );
+    
     List<Transaction> findByAccountCodeAndOccurredAtBetween(
         Account account, 
         LocalDateTime from, 

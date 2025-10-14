@@ -41,9 +41,8 @@ public class TransactionController {
             @RequestParam(defaultValue = "asc") String sortDirection, 
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to,
-            @RequestParam(required = false) String keyword) {
-        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForAdmin(page, perPage, accountCode, sortDirection, sortBy,from, to, keyword);
+            @RequestParam(required = false) LocalDate to) {
+        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForAdmin(page, perPage, accountCode, sortDirection, sortBy, from, to);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -69,9 +68,8 @@ public class TransactionController {
             @RequestParam(defaultValue = "asc") String sortDirection, 
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to,
-            @RequestParam(required = false) String keyword) {
-        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForNasabah(page, perPage, accountCode, sortDirection, sortBy, from, to, keyword);
+            @RequestParam(required = false) LocalDate to) {
+        ApiResponse<List<TransactionResponseDTO>> response = transactionService.getTransactionByAccountCodeForNasabah(page, perPage, accountCode, sortDirection, sortBy, from, to);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

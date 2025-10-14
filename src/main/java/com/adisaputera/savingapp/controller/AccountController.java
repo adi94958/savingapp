@@ -72,7 +72,7 @@ public class AccountController {
     }
 
     @GetMapping(
-        path = "/admin/account/detail/{accountCode}", 
+        path = "/admin/account/{accountCode}", 
         produces = "application/json"
     )
     public ResponseEntity<ApiResponse<AccountDetailResponseDTO>> getAccountDetail(

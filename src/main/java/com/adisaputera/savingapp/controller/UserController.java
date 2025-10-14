@@ -66,6 +66,15 @@ public class UserController {
         ApiResponse<UserResponseDTO> response = userService.getProfile();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @GetMapping(
+        path = "/admin/nasabah/{userId}", 
+        produces = "application/json"
+    )
+    public ResponseEntity<ApiResponse<UserResponseDTO>> getUserById(@PathVariable UUID userId) {
+        ApiResponse<UserResponseDTO> response = userService.getNasabahById(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
     
     @PutMapping(
         path = "/admin/nasabah/{userId}/update", 
