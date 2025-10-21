@@ -93,10 +93,6 @@ public class TransactionService {
             transactionPage = transactionRepository.findByAccountCode_AccountCode(account.getAccountCode(), pageable);
         }
 
-        if (transactionPage.isEmpty()) {
-            throw new ResourceNotFoundException("Transaction", "accountCode", account.getAccountCode());
-        }
-
         List<TransactionResponseDTO> transactionDtos = transactionPage.getContent().stream()
             .map(transaction -> {
                 Account transactionAccount = transaction.getAccountCode();

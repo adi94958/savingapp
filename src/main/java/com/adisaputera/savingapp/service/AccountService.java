@@ -90,10 +90,6 @@ public class AccountService {
             accountPage = accountRepository.findAll(pageable);
         }
 
-        if (accountPage.isEmpty()) {
-            throw new ResourceNotFoundException("Account not found");
-        }
-
         // Konversi entitas User ke DTO
         List<AccountListResponseDTO> accountDtos = accountPage.getContent().stream()
             .map(account -> {

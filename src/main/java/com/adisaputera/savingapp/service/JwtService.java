@@ -143,9 +143,9 @@ public class JwtService {
     public boolean isTokenExpired(String token) {
         try {
             Claims claims = parseToken(token);
-            return !claims.getExpiration().before(new Date());
+            return claims.getExpiration().before(new Date());
         } catch (Exception e) {
-            return false;
+            return true;
         }
     }
 
@@ -156,7 +156,7 @@ public class JwtService {
         try {
             Claims claims = parseToken(token);
             String tokenType = claims.get("type", String.class);
-            return "access".equals(tokenType) && isTokenExpired(token);
+            return "access".equals(tokenType) && !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }
@@ -169,9 +169,9 @@ public class JwtService {
         try {
             Claims claims = parseToken(token);
             String tokenType = claims.get("type", String.class);
-            return !"refresh".equals(tokenType) || !isTokenExpired(token);
+            return "refresh".equals(tokenType) && !isTokenExpired(token);
         } catch (Exception e) {
-            return true;
+            return false;
         }
     }
 

@@ -107,10 +107,6 @@ public class UserService {
             userPage = userRepository.findByRole(RoleEnum.nasabah, pageable);
         }
 
-        if (userPage.isEmpty()) {
-            throw new ResourceNotFoundException("Nasabah not found");
-        }
-
         List<UserResponseDTO> userDtos = userPage.getContent().stream()
             .map(user -> UserResponseDTO.builder()
                     .id(user.getId().toString())
